@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: arl_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - arl_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: arl_backend
+    ports:
+      - "8001:8000"
+    networks:
+      - arl_network
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    container_name: arl_proxy
+    ports:
+      - "8000:8000"
+    networks:
+      - arl_network
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    environment:
+      - BACKEND_URL=http://backend:8000
+      - CONFIG_PATH=config/default_config.yaml
+      - PYTHONUNBUFFERED=1
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    container_name: arl_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - arl_network
+    depends_on:
+      - proxy
+
+  grafana:
+    image: grafana/grafana:10.0.3
+    container_name: arl_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./config/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./config/grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml
+      - ./config/grafana/dashboards/rate_limiting.json:/etc/grafana/provisioning/dashboards/rate_limiting.json
+    networks:
+      - arl_network
+    depends_on:
+      - prometheus
+
+networks:
+  arl_network:
+    name: arl_network
+    driver: bridge

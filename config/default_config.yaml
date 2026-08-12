@@ -1,0 +1,104 @@
+# Adaptive Rate Limiting System Policy Configuration
+
+# System details
+system:
+  environment: "production"
+  debug: false
+
+# Storage (Redis) configurations
+redis:
+  host: "redis"
+  port: 6379
+  db: 0
+  prefix: "arl:"
+  pool_size: 20
+
+# Default Rate Limiting settings (when no anomaly is detected)
+defaults:
+  # Swappable rate limiting algorithm: "token_bucket", "sliding_window", or "leaky_bucket"
+  algorithm: "token_bucket"
+  
+  # Base limits for clients
+  rate: 10.0          # Refill rate per second
+  capacity: 20.0      # Maximum burst size (tokens)
+  window_seconds: 60  # Used for sliding window algorithm
+
+# Escalation settings for suspicious clients
+escalation:
+  # Cooldown period (seconds) before resetting client's escalation level if no violations occur
+  cooldown_seconds: 300
+  
+  # Temporary block duration (seconds)
+  temp_block_duration: 600
+  
+  # Escalation tier thresholds (triggered by request limits exceeded or anomaly score)
+  # Level 0: ALLOW (Normal)
+  # Level 1: THROTTLE (429 HTTP, slow response)
+  # Level 2: CHALLENGE (CAPTCHA simulation)
+  # Level 3: TEMP_BLOCK (403 HTTP, temporary blocking)
+  # Level 4: FULL_BLOCK (403 HTTP, persistent blocking/blacklist)
+  levels:
+    throttle:
+      trigger_violations: 3
+      trigger_anomaly_score: 0.3
+    challenge:
+      trigger_violations: 5
+      trigger_anomaly_score: 0.6
+    temp_block:
+      trigger_violations: 8
+      trigger_anomaly_score: 0.8
+    full_block:
+      trigger_violations: 15
+      trigger_anomaly_score: 0.95
+
+# Endpoint overrides (specific configurations for endpoints)
+endpoints:
+  - path: "/api/heavy"
+    rate: 2.0
+    capacity: 5.0
+  - path: "/health"
+    rate: 20.0
+    capacity: 40.0
+  - path: "/api/submit"
+    rate: 5.0
+    capacity: 10.0
+
+# Access Control Lists (IPs or CIDR ranges)
+access_control:
+  whitelist:
+    - "127.0.0.1"
+    - "10.0.0.0/8"
+    - "192.168.0.0/16"
+  blacklist:
+    - "198.51.100.42"
+
+# Anomaly / Attack Detection parameters
+detection:
+  enabled: true
+  evaluation_interval_seconds: 5
+  
+  # Exponentially Weighted Moving Average (EWMA) smoothing factor (0 < alpha <= 1)
+  # Higher alpha means more weight on recent rates (adapts faster but is noisier)
+  ewma_alpha: 0.3
+  
+  # Z-score thresholds for rate deviations (standard deviations from mean)
+  # Z-Score > 3.0 indicates significant anomaly
+  z_score_threshold: 3.0
+  
+  # Severity factor: how aggressively to reduce client limits under anomalies (0.0 to 1.0)
+  severity_factor: 0.7
+  
+  # Slowloris detection parameters
+  slowloris:
+    enabled: true
+    min_payload_ratio: 0.1  # min payload size relative to headers ratio
+    max_request_duration_seconds: 10
+    trigger_connection_count: 50
+
+# Global System Load monitoring
+global_monitor:
+  enabled: true
+  # Dynamic limit tightening parameters
+  max_backend_latency_ms: 500  # Latency threshold to start tightening rate limits
+  max_error_rate: 0.10         # Error rate (5xx ratio) threshold to start tightening
+  min_multiplier: 0.3          # Minimum multiplier for limits under extreme load (i.e. tighten limits down to 30% of base)
