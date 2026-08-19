@@ -5,7 +5,7 @@ import aiohttp
 from typing import List, Dict, Any
 
 class TrafficSimulator:
-    def __init__(self, target_url: str = "http://localhost:8000"):
+    def __init__(self, target_url: str = "http://localhost:8090"):
         self.target_url = target_url
         self.results: List[Dict[str, Any]] = []
         self.is_running = False

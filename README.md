@@ -113,12 +113,12 @@ Spin up Uvicorn rate limiting proxy, backend app, Redis, Prometheus, and Grafana
 ```bash
 docker compose up --build -d
 ```
-All containers will run inside an isolated Docker network. The proxy is exposed to the host at port `8000`.
+All containers will run inside an isolated Docker network. The proxy is exposed to the host at port `8090`.
 
 ### 2. Verify Health
 Verify the stack is up and healthy:
-- **Rate Limiting Proxy**: [http://localhost:8000/health](http://localhost:8000/health) (proxies to backend)
-- **Prometheus Metrics**: [http://localhost:8000/metrics](http://localhost:8000/metrics)
+- **Rate Limiting Proxy**: [http://localhost:8090/health](http://localhost:8090/health) (proxies to backend)
+- **Prometheus Metrics**: [http://localhost:8090/metrics](http://localhost:8090/metrics)
 - **Prometheus Server**: [http://localhost:9090](http://localhost:9090)
 - **Grafana Dashboard**: [http://localhost:3000](http://localhost:3000) (credentials: `admin`/`admin`. Navigate to Dashboards -> DDoS Mitigation -> Adaptive Rate Limiting)
 

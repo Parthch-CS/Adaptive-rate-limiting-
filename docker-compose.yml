@@ -32,7 +32,7 @@ services:
       dockerfile: Dockerfile.proxy
     container_name: arl_proxy
     ports:
-      - "8000:8000"
+      - "8090:8000"
     networks:
       - arl_network
     depends_on:

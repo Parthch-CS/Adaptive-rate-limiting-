@@ -34,7 +34,7 @@ async def wait_for_proxy(url: str, timeout: int = 30) -> bool:
     return False
 
 async def main():
-    target = os.getenv("PROXY_URL", "http://localhost:8000")
+    target = os.getenv("PROXY_URL", "http://localhost:8090")
     
     # Wait for proxy startup
     proxy_ready = await wait_for_proxy(target)
